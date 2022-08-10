@@ -1,0 +1,266 @@
+SQL Notes
+
+
+NOT Operator
+where not City = 'London'
+
+
+Using % Wildcards
+where size like 'Pizza%'
+-grabs anything after the word pizza
+-query example
+	select count(name)
+	from tracks
+	where name like 'all%'
+	;
+-query
+	select email
+	from customers
+	where email like 'j%gmail.com'
+	;
+-query example - grabs everything with "love" in the field
+	select count(text) as love_review
+	from review
+	where text like '%love%'
+	;
+
+
+Sorting with Order By (ASC/DESC)
+select Biweekly_Low_Rate
+from salary_range_by_job_classification
+order by Biweekly_Low_Rate asc
+;
+-query example
+	select invoiceid, billingcity, total
+	from invoices
+	where billingcity in ('Brasília','Edmonton','Vancouver')
+	order by invoiceid desc
+	;
+-query example
+	select city, sum(review_count) as reviews
+	from business
+	group by city
+	order by sum(review_count) desc
+	;
+
+
+Filtering using Between clause
+select step
+from salary_range_by_job_classification
+where job_code between 0110 and 0400
+group by step
+;
+
+
+Greater Than or Equal to
+select *
+from tracks
+where milliseconds >= 5000000
+;
+
+
+Count Function
+select count(invoiceid)
+from invoices
+where total between 5 and 15
+;
+-query example
+	select customerid, count(invoiceid) as orders
+	from invoices
+	group by customerid
+	order by orders desc
+	;
+
+
+Grouping Function (Having)
+-query
+	select albumid, count(name) as songs
+	from tracks
+	group by albumid
+	having count(name) >= 12
+	;
+
+
+Subqueries
+-query
+	select customerid, companyname, region
+	from customers
+	where customerid in 
+		(select customerid
+		 from orders
+		 where freight > 100)
+		 ;
+-subquery calculation
+	select customer_name, customer_state
+		(select count (*) as orders
+		 from orders
+		 where orders.customer_id = customer.customer_id) as orders
+	from customers
+	order by customer_name
+
+
+Joining Tables
+-Cross Join
+	select product_name, unit_price, company_name
+	from suppliers cross join products
+	;
+-Inner Join
+	select a.companyname, b.productname, b.unitprice
+	from suppliers a inner join products b on a.supplierid = b.supplierid
+	;
+-Inner Join (Multiple Tables)
+	select o.orderid, c.companyname, e.lastname
+	from ((orders o inner join customers c on o.customerid = c.customer id)
+	inner join employees e on o.employeeid = e.employeeid)
+	;
+-Self Join
+	select a.customername as customername1, b.customername as customername2, a.city
+	from customers a, customers b
+	where a.customerid = b.customerid
+	and a.city = b.city
+	order by a.city
+	;
+-Left Join
+	select c.customername, o.orderid
+	from customers c
+	left join orders o on c.customerid = o.customerid
+	order by c.customername
+	;
+-Full Outer Join
+	select c.customername, o.orderid
+	from customers c
+	full outer join orders on c.customerid = o.customerid
+	order by c.customername
+	;
+-Union
+	select city, country
+	from customers
+	where country = 'germany'
+	union
+	select city, country
+	from suppliers
+	where country = 'germany'
+	order by city
+	;
+
+
+Lesson 4
+
+Concatenations
+-combines two columns info into one field (column)
+-query example
+	select companyname, contactname, companyname || ' ('|| contactname||')'
+	from customers
+-example
+	select firstname, lastname, lower(substr(firstname,1,4)||''||substr(lastname,1,2)||'') as userid
+	from employees
+	;
+-example
+	select firstname||''||lastname||''||invoiceid||''as customerinvoiceid
+	from customers a, invoices b
+	where a.customerid = b.customerid
+	and firstname = 'Astrid'
+	;
+
+
+Trim
+-trimming text off of front or back, or from the right or left
+-query example
+	select trim(" You the best. ") as trimmedstring
+	;
+
+
+Substring
+-used for shortening data in field
+	-example below is starting with 3 letter & pulling 4 letters after it
+-query example
+	select first_name, substr(first_name,3,4)
+	from employees
+	where department_id = 100
+	;
+
+
+Upper & Lower
+-changing the punctuations of letters (upper case v. lower)
+-query example
+	-upper
+		select upper(column_name)
+		from table_name
+		;
+	-lower
+		select lower(column_name)
+		from table_name
+		;
+	-ucase
+		select ucase(column_name)
+		from table_name
+		;
+
+
+Date & Time
+-example breaks "birthdate" column into 3 columns
+-query example
+	select birthdate, strftime('%Y',birthdate) as year, strftime('%m',birthdate) as month, strftime('%d',birthdate) as day
+	from employees
+	;
+-Compute current date
+	select date('now')
+-Compute year, month, & day for current date
+	select strftime('%Y %m %d','now')
+-Compute hour, minute, second, & milliseconds from current datetime
+	select strftime('%H %M %S %s','now');
+-Compute Age using birthdate
+	select birthdate, strftime('%Y',birthdate) as year, strftime('%m',birthdate) as month, strftime('%d',birthdate) as day, date(('now')-birthdate) as age
+	from employees
+	;
+-Compute Tenure using hiredate
+	select lastname, hiredate, date('now')-strftime('%Y',hiredate) as tenure
+	from employees
+	order by lastname asc
+	;
+
+
+Case
+-example creates an extra column named "calgary"
+	-for calgary city it names them calgary
+	-for cities other than calgary, it names them other
+-query example
+	select employeeid, firstname, lastname, city, 
+		case city when 'calgary' then 'calgary'
+		else 'other' end calgary
+	from employees
+	order by lastname, firstname
+	;
+-Search Case
+	-query example
+		select trackid, name, bytes, 
+			case when bytes < 300000 then 'small'
+			     when bytes >= 300001 and bytes <= 500000 then 'medium'
+			     when bytes >= 500001 then 'large'
+			else 'other' end bytescategory
+		from tracks
+		;
+
+
+Views
+-query below creates kind of a temporary table/view
+-query example
+	create view my_view
+	as
+	select r.regiondescription, t.territorydescription, e.lastname, e.firstname, e.hiredate, e.reportsto
+	from region r
+	inner join territories t on r.regionid = t.regionid
+	inner join employeeterritories et on t.territoryid = et.territoryid
+	inner join employees e on et.employeeid = e.employeeid
+-to view the "view" created
+	select *
+	from my_view
+	drop view my_view
+	;
+-querying against view created
+	select count (territorydescription), lastname, firstname
+	from my_view
+	group by lastname, firstname
+	;
+
+
